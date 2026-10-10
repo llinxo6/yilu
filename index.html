@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f6b5c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>移路通明原型</title>
+</head><body>
+<style>
+/* Layout: one-column phone tool; sticky top bar with SOS, card lists below, tier colour shown as a left stripe + chip */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --ink:#15302b; --muted:#5b6f6a; --line:#d6e0dd;
+  --accent:#0f6b5c; --accent-ink:#ffffff;
+  --g:#2f8a4e; --g-bg:#e5f3e9; --y:#a86b00; --y-bg:#fdf1d8; --r:#c0392b; --r-bg:#fbe6e3;
+  --proto:#6b4fa0; --proto-bg:#efe9f8;
+  --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",system-ui,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1716; --surface:#16221f; --ink:#e3eeeb; --muted:#9db1ac; --line:#2a3a36;
+  --accent:#4fbfa8; --accent-ink:#06211c;
+  --g:#6fcf8f; --g-bg:#173126; --y:#f0b74a; --y-bg:#33280f; --r:#ff8a7a; --r-bg:#3a1916;
+  --proto:#c3a8ff; --proto-bg:#2a2238; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1716; --surface:#16221f; --ink:#e3eeeb; --muted:#9db1ac; --line:#2a3a36;
+  --accent:#4fbfa8; --accent-ink:#06211c;
+  --g:#6fcf8f; --g-bg:#173126; --y:#f0b74a; --y-bg:#33280f; --r:#ff8a7a; --r-bg:#3a1916;
+  --proto:#c3a8ff; --proto-bg:#2a2238; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5}
+body{margin:0}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:0 32px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.topin{max-width:560px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.brand{flex:1;min-width:0}
+.brand b{font-size:1.15rem;letter-spacing:.08em}
+.brand small{display:block;color:var(--muted);font-size:.75rem}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sos{background:var(--r);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:700;letter-spacing:.04em}
+.proto{margin-top:12px;background:var(--proto-bg);color:var(--proto);border-radius:10px;padding:8px 12px;font-size:.8rem}
+.status{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{font-size:.75rem;border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--muted);background:var(--surface)}
+.chip.ok{color:var(--g);border-color:var(--g);background:var(--g-bg)}
+h2{font-size:1.05rem;margin:20px 0 10px;text-wrap:balance}
+h2 small{color:var(--muted);font-weight:400;font-size:.8rem;margin-left:6px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--g);border-radius:12px;padding:12px 12px 12px 14px;min-height:84px}
+.cat[data-tier="y"]{border-left-color:var(--y)}
+.cat[data-tier="r"]{border-left-color:var(--r)}
+.cat[data-tier="i"]{border-left-color:var(--accent)}
+.cat .ind{font-weight:700;font-size:1.05rem}
+.cat .zh{color:var(--muted);font-size:.85rem}
+.tier{font-size:.7rem;font-weight:700;border-radius:6px;padding:1px 7px;margin-top:4px}
+.tier.g{color:var(--g);background:var(--g-bg)} .tier.y{color:var(--y);background:var(--y-bg)} .tier.r{color:var(--r);background:var(--r-bg)} .tier.i{color:var(--accent);background:var(--line)}
+.back{background:none;border:0;color:var(--accent);padding:12px 0 0;font-weight:700}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.list{display:flex;flex-direction:column;gap:10px}
+.card .ind{font-size:1.1rem;font-weight:700}
+.card .zh{font-size:1rem}
+.card .tw{color:var(--muted);font-size:.85rem}
+.card .tw::before{content:"臺語稿 ";font-size:.7rem;border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-right:4px}
+.play{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.pbtn{flex:1;min-width:120px;border:0;border-radius:10px;padding:10px 12px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
+.pbtn.alt{background:var(--surface);color:var(--accent);border:2px solid var(--accent)}
+.note{font-size:.8rem;color:var(--muted)}
+.slots{display:flex;flex-wrap:wrap;gap:8px}
+.slot{border:2px solid var(--y);background:var(--y-bg);color:var(--ink);border-radius:999px;padding:6px 14px}
+.slot[aria-pressed="true"]{background:var(--y);color:#fff}
+.bigbtn{width:100%;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:1.05rem;background:var(--accent);color:var(--accent-ink)}
+/* elder screen */
+.elder h3{font-size:1.6rem;margin:16px 0 4px;text-align:center}
+.elder p.sub{text-align:center;color:var(--muted);margin:0 0 12px}
+.body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.part{border:3px solid var(--line);background:var(--surface);border-radius:16px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:1.3rem;font-weight:700}
+.part svg{width:56px;height:56px}
+.part[aria-pressed="true"]{border-color:var(--accent);background:var(--g-bg)}
+.faces{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.face{border:3px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;font-weight:700;font-variant-numeric:tabular-nums}
+.face svg{width:100%;max-width:44px;height:auto}
+.face[aria-pressed="true"]{border-color:var(--accent);background:var(--g-bg)}
+.result{border-left:6px solid var(--y)}
+.danger{border:2px solid var(--r);background:var(--r-bg)}
+.danger ul{margin:4px 0;padding-left:1.2em}
+.danger li{margin:4px 0}
+.danger li span{display:block;color:var(--muted);font-size:.8rem}
+.exits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.exit{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:12px}
+.exit b{font-size:1.6rem;font-variant-numeric:tabular-nums;color:var(--r)}
+.exit.c1955 b{color:var(--accent)}
+.exit small{color:var(--muted);font-size:.78rem}
+.notice{background:var(--y-bg);border:2px solid var(--y);border-radius:12px;padding:12px;font-size:.9rem}
+.notice .ind{display:block;font-size:.8rem;color:var(--muted);margin-top:4px}
+.opt{width:100%;text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:12px}
+.opt b{display:block}
+.opt span{color:var(--muted);font-size:.85rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.85rem;max-width:calc(100% - 32px)}
+
+</style>
+
+<header class="top">
+  <div class="topin">
+    <div class="brand"><b>移路通明</b><small>Bahasa Indonesia · 華語 · 臺語</small></div>
+    <button class="sos" id="sosBtn" data-go="exits">SOS 求助</button>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const CATS = [
+ {id:'sakit', ind:'Sakit', zh:'疼痛', tier:'y'},
+ {id:'minum', ind:'Minum & Makan', zh:'飲水・進食', tier:'g'},
+ {id:'toilet', ind:'Toilet', zh:'如廁', tier:'g'},
+ {id:'balik', ind:'Balik badan & Mandi', zh:'翻身・洗澡', tier:'g'},
+ {id:'darurat', ind:'Darurat', zh:'緊急狀況', tier:'r'},
+ {id:'hak', ind:'Hak saya', zh:'權益資訊導航', tier:'i'},
+];
+const TIERNAME = {g:'綠｜固定核准句', y:'黃｜受控填槽', r:'紅｜固定指引', i:'權益資訊'};
+const PHRASES = {
+ minum:[
+  {ind:'Apakah Anda mau minum air?', zh:'您要喝水嗎？', tw:'你欲啉水無？'},
+  {ind:'Apakah Anda mau makan sekarang?', zh:'您現在要吃飯嗎？', tw:'你這馬欲食飯無？'},
+  {ind:'Makan pelan-pelan, ya.', zh:'慢慢吃喔。', tw:'慢慢仔食喔。'},
+  {ind:'Apakah Anda sudah kenyang?', zh:'您吃飽了嗎？', tw:'你食飽矣未？'},
+ ],
+ toilet:[
+  {ind:'Apakah Anda mau ke toilet?', zh:'您要上廁所嗎？', tw:'你欲去便所無？'},
+  {ind:'Saya akan mengganti popok Anda.', zh:'我要幫您換尿布。', tw:'我欲共你換尿苴仔。'},
+ ],
+ balik:[
+  {ind:'Saya akan membantu Anda membalikkan badan.', zh:'我要幫您翻身。', tw:'我欲共你翻身。'},
+  {ind:'Kita akan mandi sekarang.', zh:'我們現在要洗澡了。', tw:'咱這馬欲洗身軀矣。'},
+  {ind:'Apakah Anda kedinginan?', zh:'您會冷嗎？', tw:'你會寒袂？'},
+  {ind:'Pelan-pelan saja, jangan terburu-buru.', zh:'慢慢來，不要急。', tw:'慢慢仔來，免急。'},
+ ],
+};
+const PARTS = [
+ {id:'kepala', ind:'kepala', zh:'頭', tw:'頭殼'},
+ {id:'dada', ind:'dada', zh:'胸口', tw:'胸坎'},
+ {id:'perut', ind:'perut', zh:'肚子', tw:'腹肚'},
+ {id:'punggung', ind:'punggung', zh:'背', tw:'尻脊骿'},
+ {id:'kaki', ind:'kaki', zh:'腳', tw:'跤'},
+ {id:'tangan', ind:'tangan', zh:'手', tw:'手'},
+];
+const DANGER = [
+ {zh:'叫不醒，或突然意識不清', ind:'Tidak bisa dibangunkan atau tiba-tiba bingung'},
+ {zh:'呼吸困難、喘不過氣', ind:'Sesak napas'},
+ {zh:'胸痛或胸悶', ind:'Nyeri atau rasa tertekan di dada'},
+ {zh:'突然一側無力、嘴歪、說話不清', ind:'Tiba-tiba lemah satu sisi, mulut mencong, bicara pelo'},
+ {zh:'大量出血', ind:'Perdarahan banyak'},
+ {zh:'跌倒後無法起身，或撞到頭', ind:'Jatuh dan tidak bisa bangun, atau kepala terbentur'},
+];
+const EXITS = [
+ {n:'119', zh:'緊急醫療・火災', ind:'Ambulans'},
+ {n:'110', zh:'人身危險・報警', ind:'Polisi'},
+ {n:'113', zh:'家暴・性侵害等保護', ind:'Perlindungan kekerasan'},
+ {n:'1955', zh:'移工權益・申訴', ind:'Hak pekerja migran', c:'c1955'},
+];
+
+const app = document.getElementById('app');
+const state = {view:'home', cat:null, part:null, epart:null, score:null, work:null};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+
+/* 華語：裝置內建語音（正式版改為預錄音檔）；臺語：只播放預錄音檔，原型尚未錄製 */
+function speakZh(text){
+  try{
+    if(!('speechSynthesis' in window)) return toast('此裝置不支援語音播放');
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text); u.lang='zh-TW'; u.rate=.9;
+    const v=speechSynthesis.getVoices().find(v=>/zh[-_]TW/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^zh/i.test(v.lang));
+    if(v) u.voice=v;
+    speechSynthesis.speak(u);
+  }catch(e){toast('語音播放失敗')}
+}
+function playTw(){toast('臺語音檔待錄製：正式版由母語者預錄並覆聽')}
+
+function phraseCard(p, tier){
+  return `<div class="card"><span class="tier ${tier}">${TIERNAME[tier]}</span>
+   <div class="ind">${esc(p.ind)}</div><div class="zh">${esc(p.zh)}</div><div class="tw">${esc(p.tw)}</div>
+   <div class="play"><button class="pbtn" data-zh="${esc(p.zh)}">▶ 華語 Mandarin</button><button class="pbtn alt" data-tw="1">▶ 臺語 Taiwan</button></div></div>`;
+}
+const BACK = `<button class="back" data-go="home">‹ Kembali 返回</button>`;
+
+function partIcon(id){
+  const s='stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"';
+  const fig=`<circle cx="32" cy="12" r="7" ${s}/><path d="M32 19v22M18 26h28M32 41l-9 18M32 41l9 18" ${s}/>`;
+  const hl={kepala:'<circle cx="32" cy="12" r="9" fill="var(--y)" opacity=".55"/>',dada:'<rect x="24" y="20" width="16" height="10" rx="3" fill="var(--y)" opacity=".55"/>',perut:'<rect x="24" y="30" width="16" height="11" rx="3" fill="var(--y)" opacity=".55"/>',punggung:'<path d="M22 21h20v20H22z" fill="none" stroke="var(--y)" stroke-width="4" stroke-dasharray="4 3"/>',kaki:'<path d="M23 59l9-18 9 18" stroke="var(--y)" stroke-width="7" fill="none" opacity=".55"/>',tangan:'<path d="M14 26h36" stroke="var(--y)" stroke-width="7" opacity=".55"/>'}[id];
+  return `<svg viewBox="0 0 64 64" aria-hidden="true">${hl}${fig}</svg>`;
+}
+function faceIcon(n){
+  const t=n/10, curve=10-20*t; // smile -> frown
+  const col=n<=3?'var(--g)':n<=6?'var(--y)':'var(--r)';
+  return `<svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="none" stroke="${col}" stroke-width="3"/><circle cx="15" cy="18" r="2.4" fill="${col}"/><circle cx="29" cy="18" r="2.4" fill="${col}"/><path d="M13 30 Q22 ${30+curve} 31 30" stroke="${col}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+}
+
+const VIEWS = {
+ home(){
+  return `<div class="proto"><b>原型示範</b>：語句與譯文為示範內容，尚未經母語譯者與醫護審查，不可用於實際照護。</div>
+   <div class="status"><span class="chip" id="netChip">檢查連線中…</span><span class="chip" id="swChip">離線快取：檢查中…</span><span class="chip">不需帳號・不存個人紀錄</span></div>
+   <h2>Pilih situasi <small>選擇情境</small></h2>
+   <div class="grid">${CATS.map(c=>`<button class="cat" data-tier="${c.tier}" data-cat="${c.id}"><span class="ind">${c.ind}</span><span class="zh">${c.zh}</span><span class="tier ${c.tier}">${TIERNAME[c.tier]}</span></button>`).join('')}</div>`;
+ },
+ list(){
+  const c=CATS.find(c=>c.id===state.cat);
+  return `${BACK}<h2>${c.ind} <small>${c.zh}</small></h2><div class="list">${PHRASES[c.id].map(p=>phraseCard(p,'g')).join('')}</div>
+   <p class="note">綠色句卡：整句固定、整句預錄，不做即時翻譯。</p>`;
+ },
+ sakit(){
+  const p=PARTS.find(p=>p.id===state.part);
+  const base={ind:'Apakah Anda merasa sakit? Di mana yang sakit?', zh:'您會痛嗎？哪裡痛？', tw:'你敢有咧疼？佗位疼？'};
+  const filled=p?{ind:`Apakah ${p.ind} Anda sakit?`, zh:`您的${p.zh}會痛嗎？`, tw:`你的${p.tw}敢會疼？`}:null;
+  return `${BACK}<h2>Sakit <small>疼痛</small></h2>
+   <div class="list">${phraseCard(base,'y')}
+   <div class="card"><span class="tier y">${TIERNAME.y}</span><div class="note">Pilih bagian tubuh 選擇部位（只能從清單選，不能自由輸入）</div>
+    <div class="slots">${PARTS.map(x=>`<button class="slot" data-part="${x.id}" aria-pressed="${x.id===state.part}">${x.ind}・${x.zh}</button>`).join('')}</div></div>
+   ${filled?phraseCard(filled,'y'):''}
+   <button class="bigbtn" data-go="elder">Tunjukkan ke lansia 給長者看圖卡回應 ›</button></div>
+   <p class="note">黃色受控填槽：組合後的每一句都事先整句錄音，不由程式拼接或翻譯。</p>`;
+ },
+ elder(){
+  return `<div class="elder">${BACK}
+   <h3>佗位咧疼？哪裡痛？</h3><p class="sub">請用手指一下</p>
+   <div class="body">${PARTS.map(x=>`<button class="part" data-epart="${x.id}" aria-pressed="${x.id===state.epart}">${partIcon(x.id)}${x.zh}</button>`).join('')}</div>
+   <h3>有偌疼？有多痛？</h3><p class="sub">0 無疼　10 疼甲擋袂牢</p>
+   <div class="faces">${Array.from({length:11},(_,i)=>`<button class="face" data-score="${i}" aria-pressed="${i===state.score}">${faceIcon(i)}${i}</button>`).join('')}</div>
+   <p></p><button class="bigbtn" data-go="result" ${state.epart&&state.score!=null?'':'disabled style="opacity:.45"'}>完成 Selesai ›</button></div>`;
+ },
+ result(){
+  const p=PARTS.find(p=>p.id===state.epart);
+  return `${BACK}<h2>Jawaban lansia <small>長者的回應</small></h2>
+   <div class="card result"><div class="ind">Lansia menunjuk: ${esc(p.ind)} · skor ${state.score}/10</div>
+    <div class="zh">長者指：${esc(p.zh)}，疼痛 ${state.score} 分</div>
+    <div class="note">分數只供轉述給家屬或醫護，App 不依分數作任何判定。</div></div>
+   ${dangerBlock()}`;
+ },
+ darurat(){
+  return `${BACK}<h2>Darurat <small>緊急狀況</small></h2>
+   <div class="card"><span class="tier r">${TIERNAME.r}</span><div class="note">紅色類別：藥名、劑量、急症不提供任何翻譯或生成，只顯示固定指引與官方出口。</div></div>
+   <p></p>${dangerBlock()}`;
+ },
+ exits(){
+  return `${BACK}<h2>Nomor darurat <small>求助出口</small></h2>${exitsBlock()}
+   <p class="note">在 App 內按下即直接撥號。若無法撥出，請手動撥打畫面上的號碼。</p>`;
+ },
+ hak(){
+  let body='';
+  if(state.work==='unsure') body=`<div class="card danger"><div class="ind">Tidak dapat ditentukan. Silakan hubungi 1955.</div><div class="zh">無法判定，請聯絡 1955。</div></div>${exitsBlock(['1955'])}`;
+  else if(state.work==='family') body=`<div class="card"><div class="ind">Jam kerja & libur: sesuai kontrak kerja tertulis Anda.</div><div class="zh">工時與休假：依你的書面契約。</div>
+     <div class="note">家庭看護工不適用《勞動基準法》。請準備：書面契約、薪資與休假紀錄。（示範內容，條文與證據清單待法律審查）</div></div>${exitsBlock(['1955'])}`;
+  else if(state.work==='inst') body=`<div class="card"><div class="ind">Pekerja di lembaga yang tunduk pada UU Ketenagakerjaan (勞基法).</div><div class="zh">受僱於適用勞基法之機構者，適用《勞動基準法》。</div>
+     <div class="note">（示範內容，各條文白話說明待法律審查）</div></div>${exitsBlock(['1955'])}`;
+  else body=`<h2>Di mana Anda bekerja? <small>你在哪裡工作？</small></h2><div class="list">
+     <button class="opt" data-work="family"><b>Di rumah keluarga</b><span>在雇主家裡照顧長者</span></button>
+     <button class="opt" data-work="inst"><b>Di panti / lembaga</b><span>在安養、護理等機構工作</span></button>
+     <button class="opt" data-work="unsure"><b>Saya tidak yakin</b><span>我不確定</span></button></div>`;
+  return `${BACK}<div class="notice"><b>以下資訊僅供初步查詢，不能判定您的個案權益。若您的工作身分、雇主類型或契約內容不確定，請直接洽 1955。</b>
+    <span class="ind">Informasi ini hanya untuk referensi awal dan tidak dapat menentukan hak kasus Anda. Jika tidak yakin, hubungi 1955.</span></div>${body}`;
+ },
+};
+function dangerBlock(){
+  return `<div class="card danger"><b>Jika ada salah satu tanda ini, langsung telepon 119.<br>出現任一項，直接撥 119，不必先聯絡家屬。</b>
+   <ul>${DANGER.map(d=>`<li>${esc(d.zh)}<span>${esc(d.ind)}</span></li>`).join('')}</ul>
+   <div class="note">清單為示範，正式版由醫護審查者核定。</div>
+   <div class="play"><button class="pbtn" data-zh="請幫忙，這裡有長者需要救護車。">▶ 華語求救句</button></div></div>
+   <p></p>${exitsBlock(['119'])}`;
+}
+function exitsBlock(only){
+  const list=only?EXITS.filter(e=>only.includes(e.n)):EXITS;
+  return `<div class="exits">${list.map(e=>`<a class="exit ${e.c||''}" href="tel:${e.n}"><b>${e.n}</b>${e.zh}<small>${e.ind}</small></a>`).join('')}</div>`;
+}
+
+function render(){app.innerHTML=`<div class="view">${VIEWS[state.view]()}</div>`;updateStatus();window.scrollTo(0,0)}
+function go(v){
+  if(v==='home'){state.view='home';state.work=null}
+  else state.view=v;
+  render();
+}
+app.addEventListener('click',e=>{
+  const b=e.target.closest('button,a'); if(!b) return;
+  if(b.dataset.cat){const c=b.dataset.cat;state.cat=c;go(PHRASES[c]?'list':c);}
+  else if(b.dataset.go) go(b.dataset.go);
+  else if(b.dataset.zh) speakZh(b.dataset.zh);
+  else if(b.dataset.tw) playTw();
+  else if(b.dataset.part){state.part=b.dataset.part;render()}
+  else if(b.dataset.epart){state.epart=b.dataset.epart;render()}
+  else if(b.dataset.score){state.score=+b.dataset.score;render()}
+  else if(b.dataset.work){state.work=b.dataset.work;render()}
+});
+document.getElementById('sosBtn').addEventListener('click',()=>go('exits'));
+
+function updateStatus(){
+  const n=document.getElementById('netChip'), s=document.getElementById('swChip'); if(!n) return;
+  const on=navigator.onLine; n.textContent=on?'目前有網路':'目前離線 Offline'; n.className='chip'+(on?'':' ok');
+  let ok=false; try{ok=!!(navigator.serviceWorker&&navigator.serviceWorker.controller)}catch(e){}
+  s.textContent=ok?'離線可用 ✓':'離線快取：未啟用（需安裝為 App）'; s.className='chip'+(ok?' ok':'');
+}
+addEventListener('online',updateStatus); addEventListener('offline',updateStatus);
+try{
+  if('serviceWorker' in navigator && location.protocol!=='blob:'){
+    navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>setTimeout(updateStatus,300)).catch(()=>{});
+    navigator.serviceWorker.addEventListener('controllerchange',updateStatus);
+  }
+}catch(e){}
+render();
+</script>
+</body></html>
